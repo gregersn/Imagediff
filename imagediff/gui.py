@@ -94,7 +94,7 @@ class Imgdiff(QMainWindow):
         a = Image.open(imagea)
         b = Image.open(imageb)
 
-        d = difference(a, b)
+        d = (difference(a, b)).convert("RGB")
 
         pixmapdiff = QPixmap.fromImage(ImageQt(d))
         self.imagediff.setPixmap(pixmapdiff)
