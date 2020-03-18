@@ -23,19 +23,31 @@ from PyQt5.QtWidgets import (QApplication, QLabel, QWidget,
                              QHBoxLayout, QGridLayout, QMainWindow,
                              QPushButton)
 from PyQt5.QtGui import QIcon, QPixmap
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSize
 from .cli import compare
 from PIL import Image
 from PIL.ImageQt import ImageQt
 from PIL.ImageChops import difference
 import shutil
+import logging
+
+logging.basicConfig(level=os.environ.get('LOGLEVEL', logging.INFO))
+
+
+class ImageList(QListWidget):
+    def sizeHint(self):
+        logging.debug("ImageList: sizeHint()")
+        s = QSize()
+        s.setHeight(super(ImageList, self).sizeHint().height())
+        s.setWidth(self.sizeHintForColumn(0))
+        return s
 
 
 class LabelImage(QLabel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.image = None
-        self.image_scaled = None
+        self.image: QPixmap = None
+        self.image_scaled: QPixmap = None
 
     def setimage(self, image):
         self.image = image
@@ -48,19 +60,22 @@ class LabelImage(QLabel):
 
     def setPixmap(self, qPixmap, size):
         self.image = qPixmap
-        self.image_scaled = self.image.scaled(size, Qt.KeepAspectRatio)
+        if self.image.size().width() > size.width() or self.image.size().height() > size.height():
+            self.image_scaled = self.image.scaled(size, Qt.KeepAspectRatio)
+        else:
+            self.image_scaled = self.image.copy()
         super().setPixmap(self.image_scaled)
 
 
 class Imgdiff(QMainWindow):
-    def __init__(self, foldera, folderb, changed_files):
+    def __init__(self, foldera, folderb, image_list):
         super().__init__()
-        self.initUI(changed_files)
+        self.initUI(image_list)
         self.foldera = foldera
         self.folderb = folderb
         self.selectedItem = None
 
-    def initUI(self, changed_files):
+    def initUI(self, image_list):
         widget = QWidget()
 
         # Main layout container
@@ -70,13 +85,19 @@ class Imgdiff(QMainWindow):
         vbox = QVBoxLayout()
 
         # Setup file list
-        imagelist = QListWidget()
+        imagelist = ImageList()
 
-        for f in changed_files:
-            imagelist.addItem(QListWidgetItem(f))
+        for f in image_list:
+            item = QListWidgetItem(f['file'])
+            if f['status'] == 0:
+                item.setBackground(Qt.green)
+            if f['status'] == 2:
+                item.setBackground(Qt.red)
+            imagelist.addItem(item)
 
         imagelist.itemClicked.connect(self.selected)
         vbox.addWidget(imagelist)
+        imagelist.setMaximumWidth(imagelist.sizeHintForColumn(0) + 5)
 
         # Setup copy button
         copybutton = QPushButton("Copy")
@@ -87,8 +108,11 @@ class Imgdiff(QMainWindow):
 
         # Setup image grid
         self.imagea = LabelImage()
+        self.imagea.setAlignment(Qt.AlignCenter)
         self.imageb = LabelImage()
+        self.imageb.setAlignment(Qt.AlignCenter)
         self.imagediff = LabelImage()
+        self.imagediff.setAlignment(Qt.AlignCenter)
         imagegrid = QGridLayout()
         imagegrid.addWidget(self.imagea, 0, 0)
         imagegrid.addWidget(self.imageb, 0, 1)
@@ -105,21 +129,31 @@ class Imgdiff(QMainWindow):
 
     def selected(self, item: QListWidgetItem, *args, **kwargs):
         self.selectedItem = item
+
+        self.imagea.clear()
+        self.imageb.clear()
+        self.imagediff.clear()
+
         imagea = os.path.join(self.foldera, item.text())
         imageb = os.path.join(self.folderb, item.text())
+        logging.debug("Comparing {} and {}".format(imagea, imageb))
 
-        pixmapa = QPixmap(imagea)
-        self.imagea.setimage(pixmapa)
-        pixmapb = QPixmap(imageb)
-        self.imageb.setimage(pixmapb)
+        if os.path.isfile(imagea):
+            logging.debug("Opening {}".format(imagea))
+            a = Image.open(imagea)
+            logging.debug("Image A: {}".format(a))
+            self.imagea.setimage(QPixmap.fromImage(ImageQt(a.copy())))
 
-        a = Image.open(imagea)
-        b = Image.open(imageb)
+        if os.path.isfile(imageb):
+            logging.debug("Opening {}".format(imageb))
+            b = Image.open(imageb)
+            logging.debug("Image B: {}".format(b))
+            self.imageb.setimage(QPixmap.fromImage(ImageQt(b.copy())))
 
-        d = (difference(a, b)).convert("L")
-
-        pixmapdiff = QPixmap.fromImage(ImageQt(d))
-        self.imagediff.setimage(pixmapdiff)
+        if os.path.isfile(imagea) and os.path.isfile(imageb):
+            d = (difference(a, b)).convert("L")
+            pixmapdiff = QPixmap.fromImage(ImageQt(d.copy()))
+            self.imagediff.setimage(pixmapdiff)
 
     def copy(self, *args, **kwargs):
         if self.selectedItem is None:
@@ -137,12 +171,12 @@ def main():
         print("Folders need to be specified")
 
     foldera, folderb = sys.argv[1:3]
-    changed_files = compare(foldera, folderb, render=False)
+    image_list = compare(foldera, folderb, render=False)
 
     app = QApplication([])
     app.setApplicationName("Imagediff")
     app.setApplicationDisplayName("Imagediff")
-    imgdiff = Imgdiff(foldera, folderb, changed_files)
+    imgdiff = Imgdiff(foldera, folderb, image_list)
     sys.exit(app.exec_())
 
 

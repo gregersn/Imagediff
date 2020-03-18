@@ -21,6 +21,7 @@ import sys
 import hashlib
 from PIL import Image
 from PIL import ImageChops
+import logging
 
 def render_diffs(files, dira, dirb, output="output"):
     if not os.path.isdir(output):
@@ -56,8 +57,11 @@ def find_images(foldername):
             if f.endswith('.png'):
                 images.append(f)
 
-    return sorted(images)
+    return images
 
+NEW = 0
+COMMON = 1
+DELETED = 2
 
 def compare(a, b, render=False):
     assert os.path.isdir(a)
@@ -66,23 +70,38 @@ def compare(a, b, render=False):
     images_a = find_images(a)
     images_b = find_images(b)
 
-    # Here we should check for missing images
-    # ma = list(set(images_a) - set(images_b))
-    # mb = list(set(images_b) - set(images_a))
+    images_common = sorted(list(set(images_a).intersection(set(images_b))))
 
-    hashes_a = [file_hash(os.path.join(a, f)) for f in images_a]
-    hashes_b = [file_hash(os.path.join(b, f)) for f in images_b]
+    images_new = list(set(images_a) - set(images_b))
+    images_deleted = list(set(images_b) - set(images_a))
 
-    files_and_hashes = list(zip(images_a, hashes_a, hashes_b))
+    image_list = []
 
-    changed_files = [f[0] for f in files_and_hashes if f[1] != f[2]]
+    for image in images_common:
+        image_list.append({
+            'file': image,
+            'status': COMMON
+        })
     
-    print("Found {} changed file(s).".format(len(changed_files)))
+    for image in images_new:
+        image_list.append({
+            'file': image,
+            'status': NEW
+    })
+
+    for image in images_deleted:
+        image_list.append({
+            'file': image,
+            'status': DELETED
+        })
+
+    
+    print("Found {} image(s).".format(len(image_list)))
 
     if render:
-        render_diffs(changed_files, a, b, 'output')
+        render_diffs(image_list, a, b, 'output')
     
-    return changed_files
+    return image_list
 
 
 def main():
