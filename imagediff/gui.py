@@ -151,8 +151,11 @@ class Imgdiff(QMainWindow):
             self.imageb.setimage(QPixmap.fromImage(ImageQt(b.copy())))
 
         if os.path.isfile(imagea) and os.path.isfile(imageb):
+            logging.debug("Creating difference map")
             d = (difference(a, b)).convert("L")
+            logging.debug("Converting differente map")
             pixmapdiff = QPixmap.fromImage(ImageQt(d.copy()))
+            logging.debug("Setting difference map")
             self.imagediff.setimage(pixmapdiff)
 
     def copy(self, *args, **kwargs):
