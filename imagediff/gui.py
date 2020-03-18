@@ -23,11 +23,33 @@ from PyQt5.QtWidgets import (QApplication, QLabel, QWidget,
                              QHBoxLayout, QGridLayout, QMainWindow,
                              QPushButton)
 from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtCore import Qt
 from .cli import compare
 from PIL import Image
 from PIL.ImageQt import ImageQt
 from PIL.ImageChops import difference
 import shutil
+
+
+class LabelImage(QLabel):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.image = None
+        self.image_scaled = None
+
+    def setimage(self, image):
+        self.image = image
+        self.setPixmap(image, self.size())
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if self.image is not None:
+            self.setPixmap(self.image, event.size())
+
+    def setPixmap(self, qPixmap, size):
+        self.image = qPixmap
+        self.image_scaled = self.image.scaled(size, Qt.KeepAspectRatio)
+        super().setPixmap(self.image_scaled)
 
 
 class Imgdiff(QMainWindow):
@@ -37,7 +59,7 @@ class Imgdiff(QMainWindow):
         self.foldera = foldera
         self.folderb = folderb
         self.selectedItem = None
-    
+
     def initUI(self, changed_files):
         widget = QWidget()
 
@@ -52,7 +74,7 @@ class Imgdiff(QMainWindow):
 
         for f in changed_files:
             imagelist.addItem(QListWidgetItem(f))
-        
+
         imagelist.itemClicked.connect(self.selected)
         vbox.addWidget(imagelist)
 
@@ -64,9 +86,9 @@ class Imgdiff(QMainWindow):
         hbox.addLayout(vbox, 1)
 
         # Setup image grid
-        self.imagea = QLabel()
-        self.imageb = QLabel()
-        self.imagediff = QLabel()
+        self.imagea = LabelImage()
+        self.imageb = LabelImage()
+        self.imagediff = LabelImage()
         imagegrid = QGridLayout()
         imagegrid.addWidget(self.imagea, 0, 0)
         imagegrid.addWidget(self.imageb, 0, 1)
@@ -87,22 +109,22 @@ class Imgdiff(QMainWindow):
         imageb = os.path.join(self.folderb, item.text())
 
         pixmapa = QPixmap(imagea)
-        self.imagea.setPixmap(pixmapa)
+        self.imagea.setimage(pixmapa)
         pixmapb = QPixmap(imageb)
-        self.imageb.setPixmap(pixmapb)
+        self.imageb.setimage(pixmapb)
 
         a = Image.open(imagea)
         b = Image.open(imageb)
 
-        d = (difference(a, b)).convert("RGB")
+        d = (difference(a, b)).convert("L")
 
         pixmapdiff = QPixmap.fromImage(ImageQt(d))
-        self.imagediff.setPixmap(pixmapdiff)
-    
+        self.imagediff.setimage(pixmapdiff)
+
     def copy(self, *args, **kwargs):
         if self.selectedItem is None:
             return
-        
+
         source = os.path.join(self.foldera, self.selectedItem.text())
         dest = os.path.join(self.folderb, self.selectedItem.text())
 
@@ -110,11 +132,10 @@ class Imgdiff(QMainWindow):
         shutil.copyfile(source, dest)
 
 
-
 def main():
     if len(sys.argv) < 3:
         print("Folders need to be specified")
-    
+
     foldera, folderb = sys.argv[1:3]
     changed_files = compare(foldera, folderb, render=False)
 
