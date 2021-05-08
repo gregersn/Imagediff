@@ -3,3 +3,4 @@ output/
 *.pyc
 imagediff.egg-info/
 .mypy_cache/
+venv/
