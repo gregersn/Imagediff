@@ -8,7 +8,7 @@ setup(
     author_email='dev@gregerstoltnilsen.net',
     license='MIT',
     packages=find_packages(include=['imagediff']),
-    install_requires=['Pillow', 'PyQt5'],
+    install_requires=['Pillow', 'PyQt5', 'Click'],
     python_requires='>=3',
     scripts=['bin/imagediff']
 )
