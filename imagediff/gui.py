@@ -73,10 +73,10 @@ class LabelImage(QLabel):
 class Imgdiff(QMainWindow):
     def __init__(self, source: Path, destination: Path, image_list: List[ImageInfo]):
         super().__init__()
-        self.initUI(image_list)
         self.source = source
         self.destination = destination
         self.selectedItem = None
+        self.initUI(image_list)
 
     def initUI(self, image_list: List[ImageInfo]):
         widget = QWidget()
@@ -84,7 +84,7 @@ class Imgdiff(QMainWindow):
         # Main layout container
         hbox = QHBoxLayout()
 
-        # List and buttonss sublayout
+        # List and buttons sublayout
         vbox = QVBoxLayout()
 
         # Setup file list
@@ -116,10 +116,18 @@ class Imgdiff(QMainWindow):
         self.imageb.setAlignment(Qt.AlignCenter)
         self.imagediff = LabelImage()
         self.imagediff.setAlignment(Qt.AlignCenter)
+
+        self.image_a_label = QLabel(str(self.source))
+        self.image_b_label = QLabel(str(self.destination))
+
         imagegrid = QGridLayout()
-        imagegrid.addWidget(self.imagea, 0, 0)
-        imagegrid.addWidget(self.imageb, 0, 1)
-        imagegrid.addWidget(self.imagediff, 1, 0)
+        imagegrid.setRowStretch(1, 1)
+        imagegrid.setRowStretch(2, 1)
+        imagegrid.addWidget(self.image_a_label, 0, 0)
+        imagegrid.addWidget(self.imagea, 1, 0)
+        imagegrid.addWidget(self.image_b_label, 0, 1)
+        imagegrid.addWidget(self.imageb, 1, 1)
+        imagegrid.addWidget(self.imagediff, 2, 0)
 
         hbox.addLayout(imagegrid, 1)
 
