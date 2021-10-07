@@ -1,6 +1,6 @@
 """
 Imagediff
-Copyright (C) 2020  Greger Stolt Nilsen
+Copyright (C) 2020-2021  Greger Stolt Nilsen
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -17,55 +17,62 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import os
-import sys
+from typing import List, Literal, TypedDict, Union
+import click
 import hashlib
+from pathlib import Path
 from PIL import Image
 from PIL import ImageChops
-import logging
 
-def render_diffs(files, dira, dirb, output="output"):
-    if not os.path.isdir(output):
-        os.makedirs(output)
+NEW = 0
+COMMON = 1
+DELETED = 2
+
+
+class ImageInfo(TypedDict):
+    file: Path
+    status: Union[Literal[0], Literal[1], Literal[2]]
+
+
+def render_diffs(files: List[ImageInfo], dira: Path, dirb: Path, output: Path = Path("output")):
+    if not output.exists():
+        output.mkdir(parents=True, exist_ok=True)
 
     for f in files:
-        imga = Image.open(os.path.join(dira, f))
-        imgb = Image.open(os.path.join(dirb, f))
+        imga = Image.open(dira / f['file'])
+        imgb = Image.open(dirb / f['file'])
 
         assert imga.size == imgb.size
 
         out = ImageChops.difference(imga, imgb)
 
-        out.save(os.path.join(output, f))
+        out.save(output / f['file'])
 
-def file_hash(filename):
+
+def file_hash(filename: Path):
     BLOCK_SIZE = 4096
-    assert os.path.isfile(filename)
+    assert filename.is_file()
     file_hash = hashlib.md5()
     with open(filename, 'rb') as f:
         fb = f.read(BLOCK_SIZE)
         while(len(fb) > 0):
             file_hash.update(fb)
             fb = f.read(BLOCK_SIZE)
-    
+
     return file_hash.hexdigest()
 
 
-def find_images(foldername):
-    images = []
-    for root, folders, files in os.walk(foldername):
+def find_images(foldername: Path):
+    images: List[str] = []
+    for _, _, files in os.walk(foldername):
         for f in files:
             if f.endswith('.png'):
                 images.append(f)
 
     return images
 
-NEW = 0
-COMMON = 1
-DELETED = 2
 
-def compare(a, b, render=False):
-    assert os.path.isdir(a)
-    assert os.path.isdir(b)
+def compare(a: Path, b: Path, render: bool = False):
 
     images_a = find_images(a)
     images_b = find_images(b)
@@ -73,44 +80,49 @@ def compare(a, b, render=False):
     images_common = sorted(list(set(images_a).intersection(set(images_b))))
 
     images_new = list(set(images_a) - set(images_b))
+
     images_deleted = list(set(images_b) - set(images_a))
 
-    image_list = []
+    image_list: List[ImageInfo] = []
 
     for image in images_common:
         image_list.append({
-            'file': image,
+            'file': Path(image),
             'status': COMMON
         })
-    
+
     for image in images_new:
         image_list.append({
-            'file': image,
+            'file': Path(image),
             'status': NEW
-    })
+        })
 
     for image in images_deleted:
         image_list.append({
-            'file': image,
+            'file': Path(image),
             'status': DELETED
         })
 
-    
     print("Found {} image(s).".format(len(image_list)))
 
     if render:
-        render_diffs(image_list, a, b, 'output')
-    
+        render_diffs(image_list, a, b, Path('output'))
+
     return image_list
 
 
-def main():
-    if len(sys.argv) < 3:
-        print("Folders need to be specified")
-    
-    foldera, folderb = sys.argv[1:3]
-    
-    compare(foldera, folderb, render=True)
+@click.command()
+@click.argument("source", type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.argument("destination", type=click.Path(exists=True, file_okay=False, path_type=Path))
+def main(source: Path, destination: Path):
+    """
+    Compare two folders of images, with the possibility to copy from one to the other.
+
+    SOURCE: Source folder, these are the "new" images.
+
+    DESTINATION: Destination folder. Images that are copied ends up here.
+    """
+    compare(source, destination, render=True)
 
 
 if __name__ == "__main__":

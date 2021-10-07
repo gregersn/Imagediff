@@ -18,13 +18,16 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
 import sys
+from typing import Any, List, Optional
+import click
+from pathlib import Path
 from PyQt5.QtWidgets import (QApplication, QLabel, QWidget,
                              QVBoxLayout, QListWidget, QListWidgetItem,
                              QHBoxLayout, QGridLayout, QMainWindow,
                              QPushButton)
-from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtGui import QPixmap, QResizeEvent
 from PyQt5.QtCore import Qt, QSize
-from .cli import compare
+from .cli import ImageInfo, compare
 from PIL import Image
 from PIL.ImageQt import ImageQt
 from PIL.ImageChops import difference
@@ -44,21 +47,21 @@ class ImageList(QListWidget):
 
 
 class LabelImage(QLabel):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
-        self.image: QPixmap = None
-        self.image_scaled: QPixmap = None
+        self.image: Optional[QPixmap] = None
+        self.image_scaled: Optional[QPixmap] = None
 
-    def setimage(self, image):
+    def setimage(self, image: QPixmap):
         self.image = image
         self.setPixmap(image, self.size())
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, event: QResizeEvent):
         super().resizeEvent(event)
         if self.image is not None:
             self.setPixmap(self.image, event.size())
 
-    def setPixmap(self, qPixmap, size):
+    def setPixmap(self, qPixmap: QPixmap, size: QSize):
         self.image = qPixmap
         if self.image.size().width() > size.width() or self.image.size().height() > size.height():
             self.image_scaled = self.image.scaled(size, Qt.KeepAspectRatio)
@@ -68,14 +71,14 @@ class LabelImage(QLabel):
 
 
 class Imgdiff(QMainWindow):
-    def __init__(self, foldera, folderb, image_list):
+    def __init__(self, source: Path, destination: Path, image_list: List[ImageInfo]):
         super().__init__()
         self.initUI(image_list)
-        self.foldera = foldera
-        self.folderb = folderb
+        self.source = source
+        self.destination = destination
         self.selectedItem = None
 
-    def initUI(self, image_list):
+    def initUI(self, image_list: List[ImageInfo]):
         widget = QWidget()
 
         # Main layout container
@@ -88,7 +91,7 @@ class Imgdiff(QMainWindow):
         imagelist = ImageList()
 
         for f in image_list:
-            item = QListWidgetItem(f['file'])
+            item = QListWidgetItem(str(f['file']))
             if f['status'] == 0:
                 item.setBackground(Qt.green)
             if f['status'] == 2:
@@ -127,30 +130,35 @@ class Imgdiff(QMainWindow):
         self.setWindowTitle("Imagediff")
         self.show()
 
-    def selected(self, item: QListWidgetItem, *args, **kwargs):
+    def selected(self, item: QListWidgetItem, *args: Any, **kwargs: Any):
         self.selectedItem = item
 
         self.imagea.clear()
         self.imageb.clear()
         self.imagediff.clear()
 
-        imagea = os.path.join(self.foldera, item.text())
-        imageb = os.path.join(self.folderb, item.text())
-        logging.debug("Comparing {} and {}".format(imagea, imageb))
+        image_source = self.source / item.text()
+        image_destination = self.destination / item.text()
+        logging.debug("Comparing {} and {}".format(
+            image_source, image_destination))
 
-        if os.path.isfile(imagea):
-            logging.debug("Opening {}".format(imagea))
-            a = Image.open(imagea)
-            logging.debug("Image A: {}".format(a))
+        a: Optional[Image.Image] = None
+        b: Optional[Image.Image] = None
+
+        if image_source.is_file():
+            logging.debug("Opening {}".format(image_source))
+            a = Image.open(image_source)
+            logging.debug("Image source: {}".format(a))
             self.imagea.setimage(QPixmap.fromImage(ImageQt(a.copy())))
 
-        if os.path.isfile(imageb):
-            logging.debug("Opening {}".format(imageb))
-            b = Image.open(imageb)
-            logging.debug("Image B: {}".format(b))
+        if image_destination.is_file():
+            logging.debug("Opening {}".format(image_destination))
+            b = Image.open(image_destination)
+            logging.debug("Image destionation: {}".format(b))
             self.imageb.setimage(QPixmap.fromImage(ImageQt(b.copy())))
 
-        if os.path.isfile(imagea) and os.path.isfile(imageb):
+        if image_source.is_file() and image_destination.is_file():
+            assert a and b
             logging.debug("Creating difference map")
             d = (difference(a, b)).convert("L")
             logging.debug("Converting differente map")
@@ -158,28 +166,34 @@ class Imgdiff(QMainWindow):
             logging.debug("Setting difference map")
             self.imagediff.setimage(pixmapdiff)
 
-    def copy(self, *args, **kwargs):
+    def copy(self, *args: Any, **kwargs: Any):
         if self.selectedItem is None:
             return
 
-        source = os.path.join(self.foldera, self.selectedItem.text())
-        dest = os.path.join(self.folderb, self.selectedItem.text())
+        source = self.source / self.selectedItem.text()
+        dest = self.destination / self.selectedItem.text()
 
         print("Copy from {} to {}".format(source, dest))
         shutil.copyfile(source, dest)
 
 
-def main():
-    if len(sys.argv) < 3:
-        print("Folders need to be specified")
+@click.command()
+@click.argument("source", type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.argument("destination", type=click.Path(exists=True, file_okay=False, path_type=Path))
+def main(source: Path, destination: Path):
+    """
+    Compare two folders of images, with the possibility to copy from one to the other.
 
-    foldera, folderb = sys.argv[1:3]
-    image_list = compare(foldera, folderb, render=False)
+    SOURCE: Source folder, these are the "new" images.
+    DESTINATION: Destination folder. Images that are copied ends up here.
+    """
+
+    image_list = compare(source, destination, render=False)
 
     app = QApplication([])
     app.setApplicationName("Imagediff")
     app.setApplicationDisplayName("Imagediff")
-    imgdiff = Imgdiff(foldera, folderb, image_list)
+    _ = Imgdiff(source, destination, image_list)
     sys.exit(app.exec_())
 
 
