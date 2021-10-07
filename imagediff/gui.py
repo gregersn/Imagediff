@@ -185,6 +185,7 @@ def main(source: Path, destination: Path):
     Compare two folders of images, with the possibility to copy from one to the other.
 
     SOURCE: Source folder, these are the "new" images.
+
     DESTINATION: Destination folder. Images that are copied ends up here.
     """
 
