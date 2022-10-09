@@ -21,12 +21,12 @@ import sys
 from typing import Any, List, Optional
 import click
 from pathlib import Path
-from PyQt5.QtWidgets import (QApplication, QLabel, QWidget,
-                             QVBoxLayout, QListWidget, QListWidgetItem,
-                             QHBoxLayout, QGridLayout, QMainWindow,
-                             QPushButton)
-from PyQt5.QtGui import QPixmap, QResizeEvent
-from PyQt5.QtCore import Qt, QSize
+from PySide6.QtWidgets import (QApplication, QLabel, QWidget,
+                               QVBoxLayout, QListWidget, QListWidgetItem,
+                               QHBoxLayout, QGridLayout, QMainWindow,
+                               QPushButton)
+from PySide6.QtGui import QPixmap, QResizeEvent
+from PySide6.QtCore import Qt, QSize
 from .cli import ImageInfo, compare
 from PIL import Image
 from PIL.ImageQt import ImageQt
