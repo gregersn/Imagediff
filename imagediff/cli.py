@@ -66,7 +66,8 @@ def find_images(foldername: Path):
     images: List[str] = []
     for _, _, files in os.walk(foldername):
         for f in files:
-            if f.endswith('.png'):
+            filename = Path(f)
+            if filename.suffix in ('.png', '.jpeg', '.jpg', '.gif'):
                 images.append(f)
 
     return images
