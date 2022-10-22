@@ -118,16 +118,19 @@ class Imgdiff(QMainWindow):
         self.imagediff.setAlignment(Qt.AlignCenter)
 
         self.image_a_label = QLabel(str(self.source))
+        self.image_a_label.setWordWrap(True)
         self.image_b_label = QLabel(str(self.destination))
+        self.image_b_label.setWordWrap(True)
+        self.imagediff_label = QLabel("diff")
 
         imagegrid = QGridLayout()
         imagegrid.setRowStretch(1, 1)
-        imagegrid.setRowStretch(2, 1)
         imagegrid.addWidget(self.image_a_label, 0, 0)
         imagegrid.addWidget(self.imagea, 1, 0)
         imagegrid.addWidget(self.image_b_label, 0, 1)
         imagegrid.addWidget(self.imageb, 1, 1)
-        imagegrid.addWidget(self.imagediff, 2, 0)
+        imagegrid.addWidget(self.imagediff_label, 0, 2)
+        imagegrid.addWidget(self.imagediff, 1, 2)
 
         hbox.addLayout(imagegrid, 1)
 
