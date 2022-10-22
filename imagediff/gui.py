@@ -34,6 +34,9 @@ from PIL.ImageChops import difference
 import shutil
 import logging
 
+from PySide6.QtGui import QKeySequence, QShortcut
+from PySide6.QtCore import QItemSelectionModel
+
 logging.basicConfig(level=os.environ.get('LOGLEVEL', logging.INFO))
 
 
@@ -98,13 +101,15 @@ class Imgdiff(QMainWindow):
                 item.setBackground(Qt.red)
             imagelist.addItem(item)
 
-        imagelist.itemClicked.connect(self.selected)
+        imagelist.currentItemChanged.connect(self.selected)
         vbox.addWidget(imagelist)
         imagelist.setMaximumWidth(imagelist.sizeHintForColumn(0) + 5)
 
         # Setup copy button
         copybutton = QPushButton("Copy")
         copybutton.clicked.connect(self.copy)
+        copyshortcut = QShortcut(QKeySequence("c"), widget)
+        copyshortcut.activated.connect(self.copy)
         vbox.addWidget(copybutton)
 
         hbox.addLayout(vbox, 1)
@@ -132,6 +137,10 @@ class Imgdiff(QMainWindow):
         hbox.addLayout(imagegrid, 1)
 
         widget.setLayout(hbox)
+
+        initial_image = imagelist.item(0)
+        if initial_image is not None:
+            imagelist.setCurrentItem(initial_image)
 
         self.setCentralWidget(widget)
         self.setGeometry(300, 300, 640, 480)
