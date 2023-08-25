@@ -1,0 +1,56 @@
+[build-system]
+requires = ["hatchling", "hatch-requirements-txt", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "_version.py"
+
+[project]
+name = "imagediff"
+dynamic = ["version"]
+
+description = "A utility to compare folders of images."
+readme = "README.md"
+authors = [
+  { name = "Greger Stolt Nilsen", email = "gregersn@gmail.com" },
+  { name = "Rikard Gillemyr", email = "rikard.gillemyr@gmail.com" }
+]
+license = { file ="LICENSE" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+]
+keywords = ["images", "utility"]
+dependencies = [
+"Pillow>=9.0.1", "PySide6>=6.3.2", "Click>=8.0.1"]
+requires-python = ">=3"
+
+[project.urls]
+Homepage = "https://github.com/gregersn/Imagediff"
+
+[project.scripts]
+imagediff = "imagediff.gui:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["imagediff*"]
+namespaces = false
+
+[tool.pylint]
+max-line-length=140
+
+[tool.pylint."MESSAGE CONTROL"]
+disable="missing-function-docstring,missing-class-docstring,invalid-name,too-few-public-methods"
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
+
+[tool.ruff]
+line-length = 140
+
+

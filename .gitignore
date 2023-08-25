@@ -3,4 +3,7 @@ output/
 *.pyc
 imagediff.egg-info/
 .mypy_cache/
-venv/
+.venv/
+_version.py
+dist/
+
