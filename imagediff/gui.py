@@ -19,7 +19,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 import sys
 from typing import Any, List, Optional
-import click
 from pathlib import Path
 from PySide6.QtWidgets import (QApplication, QLabel, QWidget,
                                QVBoxLayout, QListWidget, QListWidgetItem,
@@ -27,7 +26,7 @@ from PySide6.QtWidgets import (QApplication, QLabel, QWidget,
                                QPushButton)
 from PySide6.QtGui import QPixmap, QResizeEvent
 from PySide6.QtCore import Qt, QSize
-from .cli import ImageInfo, compare
+from .cli import ImageInfo, compare, parse_args
 from PIL import Image
 from PIL.ImageQt import ImageQt
 from PIL.ImageChops import difference
@@ -204,10 +203,7 @@ class Imgdiff(QMainWindow):
         shutil.copyfile(source, dest)
 
 
-@click.command()
-@click.argument("source", type=click.Path(exists=True, file_okay=False, path_type=Path))
-@click.argument("destination", type=click.Path(exists=True, file_okay=False, path_type=Path))
-def main(source: Path, destination: Path):
+def main(arg_list: list[str] | None = None):
     """
     Compare two folders of images, with the possibility to copy from one to the other.
 
@@ -216,12 +212,14 @@ def main(source: Path, destination: Path):
     DESTINATION: Destination folder. Images that are copied ends up here.
     """
 
-    image_list = compare(source, destination, render=False)
+    args = parse_args(arg_list)
+
+    image_list = compare(args.source, args.destination, render=False)
 
     app = QApplication([])
     app.setApplicationName("Imagediff")
     app.setApplicationDisplayName("Imagediff")
-    _ = Imgdiff(source, destination, image_list)
+    _ = Imgdiff(args.source, args.destination, image_list)
     sys.exit(app.exec_())
 
 

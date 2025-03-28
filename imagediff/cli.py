@@ -16,10 +16,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import argparse
 import os
 import logging
 from typing import List, Literal, TypedDict, Union
-import click
 import hashlib
 from pathlib import Path
 from PIL import Image
@@ -115,11 +115,18 @@ def compare(a: Path, b: Path, render: bool = False):
 
     return image_list
 
+def parse_args(arg_list: list[str] | None):
+    parser = argparse.ArgumentParser()
 
-@click.command()
-@click.argument("source", type=click.Path(exists=True, file_okay=False, path_type=Path))
-@click.argument("destination", type=click.Path(exists=True, file_okay=False, path_type=Path))
-def main(source: Path, destination: Path):
+    parser.add_argument('source', type=Path, help="Source folder, the 'new' images.")
+    parser.add_argument('destination', type=Path, help="Destination folder, where copied images end up.")
+
+    args = parser.parse_args(arg_list)
+
+    return args
+
+
+def main(arg_list: list[str] | None = None):
     """
     Compare two folders of images, with the possibility to copy from one to the other.
 
@@ -127,7 +134,10 @@ def main(source: Path, destination: Path):
 
     DESTINATION: Destination folder. Images that are copied ends up here.
     """
-    compare(source, destination, render=True)
+
+    args = parse_args(arg_list)
+
+    compare(args.source, args.destination, render=True)
 
 
 if __name__ == "__main__":
