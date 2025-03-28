@@ -128,6 +128,11 @@ class Imgdiff(QMainWindow):
         self.image_b_label.setWordWrap(True)
         self.imagediff_label = QLabel("diff")
 
+
+        logging.debug("Setting label for image a: %s", self.image_a_label.text())
+        logging.debug("Setting label for image b: %s", self.image_b_label.text())
+        logging.debug("Setting label for image diff: %s", self.imagediff_label.text())
+
         imagegrid = QGridLayout()
         imagegrid.setRowStretch(1, 1)
         imagegrid.addWidget(self.image_a_label, 0, 0)
@@ -170,6 +175,8 @@ class Imgdiff(QMainWindow):
             a = Image.open(image_source)
             logging.debug("Image source: {}".format(a))
             self.imagea.setimage(QPixmap.fromImage(ImageQt(a.copy())))
+        else:
+            logging.warning("%s is not recognized as a file", image_source)
 
         if image_destination.is_file():
             logging.debug("Opening {}".format(image_destination))

@@ -1,6 +1,6 @@
 """
 Imagediff
-Copyright (C) 2020-2021  Greger Stolt Nilsen
+Copyright (C) 2020-2025  Greger Stolt Nilsen
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
