@@ -1,6 +1,6 @@
 """
 Imagediff
-Copyright (C) 2020-2021  Greger Stolt Nilsen
+Copyright (C) 2020-2025  Greger Stolt Nilsen
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -17,12 +17,15 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import os
+import logging
 from typing import List, Literal, TypedDict, Union
 import click
 import hashlib
 from pathlib import Path
 from PIL import Image
 from PIL import ImageChops
+
+logging.basicConfig(level=os.environ.get('LOGLEVEL', logging.INFO))
 
 NEW = 0
 COMMON = 1
@@ -64,11 +67,12 @@ def file_hash(filename: Path):
 
 def find_images(foldername: Path):
     images: List[str] = []
-    for _, _, files in os.walk(foldername):
+    for root, folder, files in foldername.walk():
         for f in files:
             filename = Path(f)
             if filename.suffix in ('.png', '.jpeg', '.jpg', '.gif'):
-                images.append(f)
+                logging.debug("Appending: %s/%s", root.relative_to(foldername), filename)
+                images.append(f"{root.relative_to(foldername)}/{f}")
 
     return images
 
