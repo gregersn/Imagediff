@@ -186,7 +186,14 @@ class Imgdiff(QMainWindow):
         if image_source.is_file() and image_destination.is_file():
             assert a and b
             logging.debug("Creating difference map")
-            d = (difference(a, b)).convert("L")
+            
+            if a.size != b.size:
+                logging.warning("Image sizes differ, %s vs %s", a.size, b.size)
+            if a.mode != b.mode:
+                logging.warning("Image mode differs, %s vs %s", a.mode, b.mode)
+
+            d = (difference(a.convert('RGBA'), b.convert('RGBA'))).convert("L")
+
             logging.debug("Converting differente map")
             pixmapdiff = QPixmap.fromImage(ImageQt(d.copy()))
             logging.debug("Setting difference map")
